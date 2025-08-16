@@ -5,7 +5,7 @@ const User = require('../models/user');
 const addTask = async(req, res) => {
     try {
         const { title, description, status = "yetToStart", priority = "low" } = req.body;
-        const user = req.user; // authMiddleware se aana chahiye
+        const user = req.user; // from authMiddleware
 
         if (!user) return res.status(401).json({ error: "Unauthorized" });
 
@@ -24,7 +24,7 @@ const addTask = async(req, res) => {
             description,
             status,
             priority,
-            user: user._id
+            user: user._id,
         });
 
         await newTask.save();
@@ -44,18 +44,13 @@ const addTask = async(req, res) => {
     }
 };
 
-// Edit Task
+// Edit Task (✅ fixed for partial updates)
 const editTask = async(req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, status, priority } = req.body;
-
-        if (!title || !description) {
-            return res.status(400).json({ error: "All fields are required." });
-        }
+        const updates = req.body;
 
         const task = await Task.findById(id);
-
         if (!task) return res.status(404).json({ error: "Task not found" });
 
         // Optional: check if current user owns the task
@@ -63,10 +58,29 @@ const editTask = async(req, res) => {
             return res.status(403).json({ error: "Forbidden" });
         }
 
-        task.title = title;
-        task.description = description;
-        task.status = status;
-        task.priority = priority;
+        // ✅ Update only the provided fields
+        if (updates.title !== undefined) {
+            if (updates.title.length < 3) {
+                return res.status(400).json({ error: "Title must be at least 3 characters long." });
+            }
+            task.title = updates.title;
+        }
+
+        if (updates.description !== undefined) {
+            if (updates.description.length < 3) {
+                return res.status(400).json({ error: "Description must be at least 3 characters long." });
+            }
+            task.description = updates.description;
+        }
+
+        if (updates.status !== undefined) {
+            task.status = updates.status;
+        }
+
+        if (updates.priority !== undefined) {
+            task.priority = updates.priority;
+        }
+
         await task.save();
 
         return res.status(200).json({ success: "Task updated successfully.", task });
@@ -103,7 +117,6 @@ const getAllTasks = async(req, res) => {
     try {
         if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-        // Fetch tasks for the user
         const tasks = await Task.find({ user: req.user._id }).sort({ createdAt: -1 });
         console.log("All tasks fetched:", tasks);
 
@@ -146,5 +159,5 @@ module.exports = {
     editTask,
     getTask,
     getAllTasks,
-    deleteTask
+    deleteTask,
 };

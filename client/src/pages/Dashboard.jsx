@@ -13,27 +13,64 @@ const TASK_STATUS = {
   COMPLETED: "completed",
 };
 
+// Priority styles
+const PRIORITY_STYLES = {
+  high: {
+    text: "text-red-700",
+    bg: "bg-red-100",
+    border: "border-red-300",
+    label: "High 🔴",
+  },
+  medium: {
+    text: "text-yellow-700",
+    bg: "bg-yellow-100",
+    border: "border-yellow-300",
+    label: "Medium 🟡",
+  },
+  low: {
+    text: "text-green-700",
+    bg: "bg-green-100",
+    border: "border-green-300",
+    label: "Low 🟢",
+  },
+};
+
 // TaskCard component
-const TaskCard = ({ task, onEdit, onDelete }) => (
-  <div className={`p-4 rounded shadow ${task.highlight ? "bg-yellow-100" : "bg-white"}`}>
-    <h3 className="font-semibold">{task.title}</h3>
-    <p className="text-sm">{task.description}</p>
-    <div className="flex gap-2 mt-2">
-      <button
-        className="px-2 py-1 bg-blue-500 text-white rounded"
-        onClick={() => onEdit(task)}
+const TaskCard = ({ task, onEdit, onDelete }) => {
+  const priorityKey = (task.priority || "low").trim().toLowerCase();
+  const priorityStyle = PRIORITY_STYLES[priorityKey] || PRIORITY_STYLES.low;
+
+  return (
+    <div
+      className={`p-4 rounded shadow border ${priorityStyle.bg} ${priorityStyle.border}`}
+    >
+      <h3 className="font-semibold">{task.title}</h3>
+      <p className="text-sm text-gray-700">{task.description}</p>
+
+      {/* Priority Badge */}
+      <span
+        className={`inline-block mt-2 px-2 py-1 text-xs font-semibold rounded ${priorityStyle.text}`}
       >
-        Edit
-      </button>
-      <button
-        className="px-2 py-1 bg-red-500 text-white rounded"
-        onClick={() => onDelete(task)}
-      >
-        Delete
-      </button>
+        {priorityStyle.label}
+      </span>
+
+      <div className="flex gap-2 mt-3">
+        <button
+          className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+          onClick={() => onEdit(task)}
+        >
+          Edit
+        </button>
+        <button
+          className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+          onClick={() => onDelete(task)}
+        >
+          Delete
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard = () => {
   const [showAddTask, setShowAddTask] = useState(false);
@@ -48,9 +85,11 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axios.get("http://localhost:5000/api/v1/tasks", { withCredentials: true });
+      const res = await axios.get("http://localhost:5000/api/v1/tasks", {
+        withCredentials: true,
+      });
 
-      const normalizedTasks = (res.data.tasks || []).map(task => ({
+      const normalizedTasks = (res.data.tasks || []).map((task) => ({
         _id: task._id || task.id || Math.random().toString(36).substr(2, 9),
         title: task.title || "Untitled Task",
         description: task.description || "",
@@ -69,7 +108,9 @@ const Dashboard = () => {
       setTasks(normalizedTasks);
     } catch (err) {
       console.error("Failed to fetch tasks:", err);
-      setError(err.response?.data?.message || err.message || "Failed to load tasks.");
+      setError(
+        err.response?.data?.message || err.message || "Failed to load tasks."
+      );
     } finally {
       setLoading(false);
     }
@@ -79,17 +120,21 @@ const Dashboard = () => {
     fetchTasks();
   }, []);
 
-  const getFilteredTasks = status => tasks.filter(task => task.status === status);
+  const getFilteredTasks = (status) =>
+    tasks.filter((task) => task.status === status);
 
-  const handleEditClick = task => {
+  const handleEditClick = (task) => {
     setSelectedTask(task);
     setShowEditTask(true);
   };
 
-  const handleDeleteTask = async task => {
-    if (!window.confirm(`Are you sure you want to delete "${task.title}"?`)) return;
+  const handleDeleteTask = async (task) => {
+    if (!window.confirm(`Are you sure you want to delete "${task.title}"?`))
+      return;
     try {
-      await axios.delete(`http://localhost:5000/api/v1/tasks/${task._id}`, { withCredentials: true });
+      await axios.delete(`http://localhost:5000/api/v1/tasks/${task._id}`, {
+        withCredentials: true,
+      });
       fetchTasks();
     } catch (err) {
       console.error("Failed to delete task:", err);
@@ -97,18 +142,23 @@ const Dashboard = () => {
     }
   };
 
-  const isRecentlyUpdated = updatedAt => {
+  const isRecentlyUpdated = (updatedAt) => {
     if (!updatedAt) return false;
-    return Date.now() - new Date(updatedAt).getTime() < 24 * 60 * 60 * 1000;
+    return Date.now() - new Date(updatedAt).getTime() <
+      24 * 60 * 60 * 1000;
   };
 
   // Drag & drop handler
-  const handleDragEnd = async result => {
+  const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
-    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    )
+      return;
 
-    const task = tasks.find(t => t._id === draggableId);
+    const task = tasks.find((t) => t._id === draggableId);
     const newStatus = destination.droppableId;
 
     try {
@@ -127,20 +177,27 @@ const Dashboard = () => {
       fetchTasks();
     } catch (err) {
       console.error("Failed to update task status:", err);
-      alert(err.response?.data?.message || "Failed to move task. Please try again.");
+      alert(
+        err.response?.data?.message ||
+          "Failed to move task. Please try again."
+      );
     }
   };
 
   // Render each column
   const renderColumn = (title, status) => (
     <div className="flex flex-col gap-4">
-      <h2 className="font-bold text-lg">{title} ({getFilteredTasks(status).length})</h2>
+      <h2 className="font-bold text-lg">
+        {title} ({getFilteredTasks(status).length})
+      </h2>
       <Droppable droppableId={status}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex flex-col gap-3 p-2 rounded-md ${snapshot.isDraggingOver ? "bg-zinc-100" : ""}`}
+            className={`flex flex-col gap-3 p-2 rounded-md ${
+              snapshot.isDraggingOver ? "bg-zinc-100" : ""
+            }`}
           >
             {getFilteredTasks(status).map((task, index) => (
               <Draggable key={task._id} draggableId={task._id} index={index}>
@@ -151,7 +208,10 @@ const Dashboard = () => {
                     {...provided.dragHandleProps}
                   >
                     <TaskCard
-                      task={{ ...task, highlight: isRecentlyUpdated(task.updatedAt) }}
+                      task={{
+                        ...task,
+                        highlight: isRecentlyUpdated(task.updatedAt),
+                      }}
                       onEdit={handleEditClick}
                       onDelete={handleDeleteTask}
                     />
@@ -177,7 +237,10 @@ const Dashboard = () => {
       ) : error ? (
         <div className="py-4 flex flex-col justify-center items-center bg-zinc-100 min-h-[89vh]">
           <p className="text-red-500 mb-4">{error}</p>
-          <button onClick={fetchTasks} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          <button
+            onClick={fetchTasks}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
             Retry
           </button>
         </div>
@@ -193,15 +256,28 @@ const Dashboard = () => {
 
       {showAddTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-zinc-800 opacity-80" onClick={() => setShowAddTask(false)} />
-          <AddTask onClose={() => setShowAddTask(false)} refreshTasks={fetchTasks} />
+          <div
+            className="absolute inset-0 bg-zinc-800 opacity-80"
+            onClick={() => setShowAddTask(false)}
+          />
+          <AddTask
+            onClose={() => setShowAddTask(false)}
+            refreshTasks={fetchTasks}
+          />
         </div>
       )}
 
       {showEditTask && selectedTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-zinc-800 opacity-80" onClick={() => setShowEditTask(false)} />
-          <EditTask task={selectedTask} onClose={() => setShowEditTask(false)} refreshTasks={fetchTasks} />
+          <div
+            className="absolute inset-0 bg-zinc-800 opacity-80"
+            onClick={() => setShowEditTask(false)}
+          />
+          <EditTask
+            task={selectedTask}
+            onClose={() => setShowEditTask(false)}
+            refreshTasks={fetchTasks}
+          />
         </div>
       )}
     </div>

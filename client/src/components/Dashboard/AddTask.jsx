@@ -27,17 +27,11 @@ const AddTask = ({ onClose, refreshTasks }) => {
     setIsSubmitting(true);
 
     try {
-      // Normalize status to match backend enum
-      let status = values.status.toLowerCase().replace(/\s/g, "");
-      if (status === "yettostart") status = "yetToStart";
-      else if (status === "inprogress") status = "inprogress";
-      else status = "completed";
-
       const payload = {
         title: values.title.trim(),
         description: values.description.trim(),
-        priority: values.priority.toLowerCase(),
-        status,
+        priority: values.priority, // exact enum match
+        status: values.status,     // exact enum match
       };
 
       await axios.post("http://localhost:5000/api/v1/tasks", payload, {

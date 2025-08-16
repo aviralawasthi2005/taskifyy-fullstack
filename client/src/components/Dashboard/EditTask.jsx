@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+const STATUS_OPTIONS = [
+  { label: "Yet to Start", value: "yetToStart" },
+  { label: "In Progress", value: "inprogress" },
+  { label: "Completed", value: "completed" },
+];
+
+const PRIORITY_OPTIONS = [
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+];
+
 const EditTask = ({ task, onClose, refreshTasks }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -15,13 +27,13 @@ const EditTask = ({ task, onClose, refreshTasks }) => {
       setFormData({
         title: task.title || "",
         description: task.description || "",
-        priority: task.priority?.toLowerCase() || "low",
-        status: task.status?.toLowerCase().replace(/\s/g, "") || "yetToStart",
+        priority: task.priority || "low",
+        status: task.status || "yetToStart",
       });
     }
   }, [task]);
 
-  // Handle form field changes
+  // Handle input changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -29,19 +41,34 @@ const EditTask = ({ task, onClose, refreshTasks }) => {
   // Submit updated task
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
+      // Send only changed fields
+      const updatedData = {};
+      Object.keys(formData).forEach((key) => {
+        if (formData[key] !== task[key]) {
+          updatedData[key] = formData[key];
+        }
+      });
+
+      // If no changes, just close modal
+      if (Object.keys(updatedData).length === 0) {
+        onClose();
+        return;
+      }
+
       const res = await axios.put(
         `http://localhost:5000/api/v1/tasks/${task._id}`,
-        formData,
+        updatedData,
         { withCredentials: true }
       );
 
       if (res.status === 200) {
-        refreshTasks(); // refresh parent task list
-        onClose();      // close modal
+        refreshTasks();
+        onClose();
       }
     } catch (err) {
-      console.error("Error updating task:", err);
+      console.error("Error updating task:", err.response?.data || err.message);
       alert("Failed to update task. Please try again.");
     }
   };
@@ -73,9 +100,11 @@ const EditTask = ({ task, onClose, refreshTasks }) => {
             onChange={handleChange}
             className="border p-2 rounded"
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            {PRIORITY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
           <select
             name="status"
@@ -83,9 +112,11 @@ const EditTask = ({ task, onClose, refreshTasks }) => {
             onChange={handleChange}
             className="border p-2 rounded"
           >
-            <option value="yetToStart">Yet to Start</option>
-            <option value="inprogress">In Progress</option>
-            <option value="completed">Completed</option>
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
 
           <div className="flex justify-end gap-2 mt-2">

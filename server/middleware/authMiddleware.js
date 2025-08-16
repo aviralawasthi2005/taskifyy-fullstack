@@ -3,7 +3,6 @@ const User = require("../models/user");
 
 const authMiddleware = async(req, res, next) => {
     try {
-
         const token = req.cookies.taskifyyUserToken;
 
         if (!token) {
@@ -16,6 +15,7 @@ const authMiddleware = async(req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+        // ✅ Correct check
         if (!decoded || !decoded.id) {
             return res.status(401).json({
                 success: false,
@@ -32,10 +32,9 @@ const authMiddleware = async(req, res, next) => {
             });
         }
 
-        // Attach user
+        // Attach user to request
         req.user = user;
         next();
-
     } catch (error) {
         console.error("Auth middleware error:", error);
 

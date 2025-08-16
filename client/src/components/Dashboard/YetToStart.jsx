@@ -3,11 +3,12 @@ import PropTypes from "prop-types";
 import { Droppable } from "react-beautiful-dnd";
 import TaskCard from "./TaskCard";
 
-// Utility function
+// Normalize status for comparison
 const normalizeStatus = (status) => status?.toLowerCase().replace(/\s/g, "") || "";
 
 const YetToStart = memo(({ tasks, onEdit, onDelete }) => {
-  const filteredTasks = tasks?.filter((task) => normalizeStatus(task.status) === "yettostart") || [];
+  const filteredTasks =
+    tasks?.filter((task) => normalizeStatus(task.status) === "yettostart") || [];
 
   return (
     <Droppable droppableId="yettostart">
